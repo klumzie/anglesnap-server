@@ -18,9 +18,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.128.2+1.21.6"
 }
 
-loom {
-    accessWidenerPath = file("src/main/resources/anglesnapserver.accesswidener")
-}
+
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(17))
