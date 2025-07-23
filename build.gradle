@@ -1,6 +1,6 @@
 plugins {
-    // Use the variable from gradle.properties
-    id 'fabric-loom' version project.loom_version
+    // The version must be a literal string here
+    id 'fabric-loom' version '1.7-SNAPSHOT'
     id 'maven-publish'
 }
 
