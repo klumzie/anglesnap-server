@@ -1,37 +1,47 @@
 plugins {
-    id 'fabric-loom' version '1.11-SNAPSHOT'
-    id 'java'
+    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'maven-publish'
 }
 
-group = 'me.contaria'
-version = '1.0.0'
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
 
 repositories {
+    maven { url = "https://maven.fabricmc.net/" }
     mavenCentral()
-    maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://repo.spongepowered.org/maven' }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:1.21.6"
-    mappings "net.fabricmc:yarn:1.21.6+build.1:v2"
-    modImplementation "net.fabricmc:fabric-loader:0.16.14"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:0.128.0+1.21.6"
-    modCompileOnly "org.spongepowered:mixin:0.8.5"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.layered() {
+        officialMojangMappings()
+    }
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
 }
 
 loom {
-    runs {
-        client {
-            runDir = "run"
-        }
-        server {
-            runDir = "run"
+    splitEnvironmentSourceSets()
+    mods {
+        "anglesnap-server" {
+            sourceSet sourceSets.main
         }
     }
 }
