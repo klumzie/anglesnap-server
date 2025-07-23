@@ -8,8 +8,8 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
-    maven { url 'https://maven.fabricmc.net/' }
-    maven { url 'https://repo.spongepowered.org/maven' }
+maven { url = 'https://maven.fabricmc.net/' }
+maven { url = 'https://repo.spongepowered.org/maven' }
 }
 
 
