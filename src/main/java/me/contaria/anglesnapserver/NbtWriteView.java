@@ -15,7 +15,14 @@ public class NbtWriteView implements WriteView {
     public void put(String key, Object value) {
         if (value instanceof NbtCompound compound) {
             nbt.put(key, compound);
+        } else {
+            throw new UnsupportedOperationException("Only NbtCompound supported");
         }
+    }
+
+    @Override
+    public void remove(String key) {
+        nbt.remove(key);
     }
 
     @Override

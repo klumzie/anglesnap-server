@@ -3,6 +3,7 @@ package me.contaria.anglesnapserver.storage;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.storage.ReadView;
 import net.minecraft.registry.RegistryWrapper;
+
 import java.util.Optional;
 
 public class NbtReadView implements ReadView {
@@ -21,12 +22,8 @@ public class NbtReadView implements ReadView {
     }
 
     @Override
-    public boolean isEmpty() {
-        return nbt.isEmpty();
+    public boolean contains(String key) {
+        return nbt.contains(key);
     }
 
     @Override
-    public <T> Optional<RegistryWrapper<T>> getRegistries(Class<T> type) {
-        return Optional.empty(); // Not needed for your use case
-    }
-}
