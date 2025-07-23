@@ -27,3 +27,12 @@ public class NbtReadView implements ReadView {
     }
 
     @Override
+    public boolean isEmpty() {
+        return nbt.isEmpty();
+    }
+
+    @Override
+    public <T> Optional<RegistryWrapper<T>> getRegistries(Class<T> type) {
+        return Optional.empty(); // Not needed for your use case
+    }
+}  // <--- THIS CLOSING BRACE IS CRUCIAL
