@@ -8,16 +8,15 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
-maven { url = 'https://maven.fabricmc.net/' }
-maven { url = 'https://repo.spongepowered.org/maven' }
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://repo.spongepowered.org/maven' }
 }
-
 
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
 
-    modImplementation "net.fabricmc.fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-loader:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
     modCompileOnly "org.spongepowered:mixin:0.8.5"  // for Mixin annotations at compile time
 }
@@ -26,7 +25,6 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
-
 
 loom {
     runs {
