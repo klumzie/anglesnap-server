@@ -2,7 +2,6 @@ package me.contaria.anglesnapserver;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -11,8 +10,7 @@ import net.minecraft.server.world.ServerWorld;
 import java.util.*;
 
 public class ArrowTracker {
-
-    private final Map<UUID, List<NbtCompound>> arrowData = new HashMap<>();
+    private static final Map<UUID, List<NbtCompound>> playerArrowData = new HashMap<>();
 
     public void register() {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -20,21 +18,23 @@ public class ArrowTracker {
             UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
-            List<NbtCompound> saved = new ArrayList<>();
+            List<NbtCompound> arrowsToSave = new ArrayList<>();
+            List<PersistentProjectileEntity> projectiles = world.getEntitiesByClass(
+                PersistentProjectileEntity.class,
+                player.getBoundingBox().expand(128),
+                entity -> entity.getOwner() != null && entity.getOwner().getUuid().equals(uuid)
+            );
 
-            for (PersistentProjectileEntity arrow : world.getEntitiesByClass(
-                    PersistentProjectileEntity.class,
-                    player.getBoundingBox().expand(64),
-                    entity -> uuid.equals(entity.getOwnerUuid())
-            )) {
-                NbtCompound tag = new NbtCompound();
-                arrow.writeNbt(tag);
-                saved.add(tag);
-                arrow.discard();
+            for (PersistentProjectileEntity projectile : projectiles) {
+                NbtCompound nbt = new NbtCompound();
+                if (projectile.saveSelfNbt(nbt)) {
+                    arrowsToSave.add(nbt);
+                    projectile.discard();
+                }
             }
 
-            if (!saved.isEmpty()) {
-                arrowData.put(uuid, saved);
+            if (!arrowsToSave.isEmpty()) {
+                playerArrowData.put(uuid, arrowsToSave);
             }
         });
 
@@ -43,16 +43,14 @@ public class ArrowTracker {
             UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
-            List<NbtCompound> saved = arrowData.remove(uuid);
-            if (saved == null) return;
-
-            for (NbtCompound tag : saved) {
-                Entity e = EntityType.loadEntityFromNbt(tag, world);
-                if (e instanceof PersistentProjectileEntity p) {
-                    p.setOwner(player);
-                }
-                if (e != null) {
-                    world.spawnEntity(e);
+            List<NbtCompound> arrowsToRestore = playerArrowData.remove(uuid);
+            if (arrowsToRestore != null) {
+                for (NbtCompound nbt : arrowsToRestore) {
+                    Entity arrow = Entity.loadEntityWithPassengers(nbt, world);
+                    if (arrow instanceof PersistentProjectileEntity) {
+                        ((PersistentProjectileEntity) arrow).setOwner(player);
+                        world.spawnEntity(arrow);
+                    }
                 }
             }
         });
