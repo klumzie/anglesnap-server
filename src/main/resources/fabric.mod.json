@@ -10,6 +10,9 @@
   "entrypoints": {
     "main": ["me.contaria.anglesnapserver.AngleSnapServer"]
   },
+  "mixins": [
+    "me.contaria.anglesnapserver.mixin.EntityMixin"
+  ],
   "depends": {
     "fabricloader": ">=0.16.14",
     "minecraft": "1.21.6",

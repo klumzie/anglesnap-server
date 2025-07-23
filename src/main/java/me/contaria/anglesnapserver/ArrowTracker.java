@@ -1,69 +1,67 @@
 package me.contaria.anglesnapserver;
 
+import me.contaria.anglesnapserver.mixin.EntityNbtAccess;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
+import net.minecraft.registry.Registries;
+import net.minecraft.entity.EntityType;
 
 import java.util.*;
 
 public class ArrowTracker {
+    private static final Map<UUID, List<NbtCompound>> playerArrowData = new HashMap<>();
 
-    /**
-     * Stores arrow NBT data per player UUID when they disconnect.
-     * Restores arrows on player reconnect.
-     */
-    private static final Map<UUID, List<NbtCompound>> savedArrowsByPlayer = new HashMap<>();
-
-    /**
-     * Registers connection event listeners to save and restore player arrows.
-     */
     public void register() {
-        // On player disconnect, save arrows owned by the player and remove them from the world
+        // Save arrows on disconnect
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayerEntity player = handler.player;
-            UUID playerUuid = player.getUuid();
+            UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
             List<NbtCompound> arrowsToSave = new ArrayList<>();
-            // Find all PersistentProjectileEntity within 128 blocks owned by this player
-            List<PersistentProjectileEntity> arrows = world.getEntitiesByClass(
-                    PersistentProjectileEntity.class,
-                    player.getBoundingBox().expand(128),
-                    entity -> {
-                        Entity owner = entity.getOwner();
-                        return owner != null && owner.getUuid().equals(playerUuid);
-                    }
+
+            List<PersistentProjectileEntity> projectiles = world.getEntitiesByClass(
+                PersistentProjectileEntity.class,
+                player.getBoundingBox().expand(128),
+                entity -> entity.getOwner() != null && entity.getOwner().getUuid().equals(uuid)
             );
 
-            for (PersistentProjectileEntity arrow : arrows) {
-                NbtCompound nbt = new NbtCompound();
-                if (arrow.saveSelfNbt(nbt)) {
-                    arrowsToSave.add(nbt);
-                    arrow.discard();
-                }
+            for (PersistentProjectileEntity arrow : projectiles) {
+                NbtCompound nbt = ((EntityNbtAccess) arrow).anglesnap$toNbt();
+                // Add the entity type ID so we can load it later
+                nbt.putString("id", Registries.ENTITY_TYPE.getId(arrow.getType()).toString());
+                arrowsToSave.add(nbt);
+                arrow.discard();
             }
 
             if (!arrowsToSave.isEmpty()) {
-                savedArrowsByPlayer.put(playerUuid, arrowsToSave);
+                playerArrowData.put(uuid, arrowsToSave);
             }
         });
 
-        // On player join, restore saved arrows back into the world and reassign ownership
+        // Restore arrows on join
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.player;
-            UUID playerUuid = player.getUuid();
+            UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
-            List<NbtCompound> savedArrows = savedArrowsByPlayer.remove(playerUuid);
-            if (savedArrows != null) {
-                for (NbtCompound nbt : savedArrows) {
-                    Entity entity = Entity.loadEntityWithPassengers(nbt, world);
-                    if (entity instanceof PersistentProjectileEntity arrow) {
-                        arrow.setOwner(player);
-                        world.spawnEntity(arrow);
+            List<NbtCompound> arrows = playerArrowData.remove(uuid);
+            if (arrows != null) {
+                for (NbtCompound nbt : arrows) {
+                    String id = nbt.getString("id");
+                    EntityType<?> type = Registries.ENTITY_TYPE.get(new Identifier(id));
+                    if (type != null) {
+                        Entity entity = type.create(world);
+                        if (entity instanceof PersistentProjectileEntity arrow) {
+                            ((EntityNbtAccess) arrow).anglesnap$fromNbt(nbt);
+                            arrow.setOwner(player);
+                            world.spawnEntity(arrow);
+                        }
                     }
                 }
             }
