@@ -1,20 +1,23 @@
 package me.contaria.anglesnapserver;
 
-import me.contaria.anglesnapserver.mixin.EntityNbtAccess;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 public class ArrowTracker {
+
     private static final Map<UUID, List<NbtCompound>> playerArrowData = new HashMap<>();
 
     public void register() {
@@ -30,11 +33,11 @@ public class ArrowTracker {
                 entity -> entity.getOwner() != null && entity.getOwner().getUuid().equals(uuid)
             );
 
-            for (PersistentProjectileEntity arrow : projectiles) {
-                NbtCompound nbt = ((EntityNbtAccess) arrow).anglesnap$toNbt();
-                nbt.putString("id", Registries.ENTITY_TYPE.getId(arrow.getType()).toString());
+            for (PersistentProjectileEntity projectile : projectiles) {
+                NbtCompound nbt = new NbtCompound();
+                projectile.saveNbt(nbt);
                 arrowsToSave.add(nbt);
-                arrow.discard();
+                projectile.discard();
             }
 
             if (!arrowsToSave.isEmpty()) {
@@ -47,24 +50,17 @@ public class ArrowTracker {
             UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
-            List<NbtCompound> arrows = playerArrowData.remove(uuid);
-            if (arrows != null) {
-                for (NbtCompound nbt : arrows) {
-                    Optional<String> idOpt = nbt.getString("id");
-                    if (idOpt.isEmpty()) continue;
+            List<NbtCompound> arrowsToRestore = playerArrowData.remove(uuid);
 
-                    String idString = idOpt.get();
-                    Identifier id = Identifier.tryParse(idString);
-                    if (id == null) continue;
-
-                    EntityType<?> type = Registries.ENTITY_TYPE.get(id);
-                    if (type == null) continue;
-
-                    Entity entity = type.create(world, SpawnReason.EVENT);
-                    if (entity instanceof PersistentProjectileEntity arrow) {
-                        ((EntityNbtAccess) arrow).anglesnap$fromNbt(nbt);
-                        world.spawnEntity(arrow);
-                    }
+            if (arrowsToRestore != null) {
+                for (NbtCompound nbt : arrowsToRestore) {
+                    Optional<Entity> optionalEntity = EntityType.load(world, nbt);
+                    optionalEntity.ifPresent(entity -> {
+                        if (entity instanceof PersistentProjectileEntity) {
+                            ((PersistentProjectileEntity) entity).setOwner(player);
+                        }
+                        world.spawnEntity(entity);
+                    });
                 }
             }
         });
