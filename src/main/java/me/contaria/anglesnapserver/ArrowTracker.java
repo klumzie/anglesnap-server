@@ -7,14 +7,8 @@ import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class ArrowTracker {
 
@@ -35,7 +29,7 @@ public class ArrowTracker {
 
             for (PersistentProjectileEntity projectile : projectiles) {
                 NbtCompound nbt = new NbtCompound();
-                projectile.saveNbt(nbt);
+                projectile.saveNbt(nbt); // Correct method for 1.21.6
                 arrowsToSave.add(nbt);
                 projectile.discard();
             }
@@ -54,7 +48,7 @@ public class ArrowTracker {
 
             if (arrowsToRestore != null) {
                 for (NbtCompound nbt : arrowsToRestore) {
-                    Optional<Entity> optionalEntity = EntityType.load(world, nbt);
+                    Optional<Entity> optionalEntity = EntityType.load(world, nbt); // Correct method for 1.21.6
                     optionalEntity.ifPresent(entity -> {
                         if (entity instanceof PersistentProjectileEntity) {
                             ((PersistentProjectileEntity) entity).setOwner(player);
