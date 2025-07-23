@@ -1,48 +1,40 @@
 package me.contaria.anglesnapserver.mixin;
 
+import me.contaria.anglesnapserver.storage.NbtWriteView;
+import me.contaria.anglesnapserver.storage.NbtReadView;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PersistentProjectileEntity.class)
-public abstract class PersistentProjectileEntityMixin {
-
-    // Helper method to get the current entity instance.
-    private PersistentProjectileEntity asEntity() {
-        return (PersistentProjectileEntity) (Object) this;
-    }
-
-    /**
-     * Injects into the writeNbt method, which is the modern equivalent for saving data.
-     * This avoids the need for custom WriteView classes.
-     */
-    @Inject(method = "writeNbt", at = @At("HEAD"))
-    private void writeOwnerToNbt(NbtCompound nbt, CallbackInfo ci) {
-        Entity owner = this.asEntity().getOwner();
+public abstract class PersistentProjectileEntityMixin extends Entity {
+    @Inject(method = "writeCustomData", at = @At("TAIL"))
+    private void writeOwner(WriteView view, CallbackInfo ci) {
+        Entity owner = ((PersistentProjectileEntity)(Object)this).getOwner();
         if (owner != null) {
-            nbt.putUuid("CustomOwnerUUID", owner.getUuid());
+            NbtCompound tag = new NbtCompound();
+            tag.putUuid("Owner", owner.getUuid());
+            ((NbtWriteView)view).getNbt().put("Owner", tag);
         }
     }
 
-    /**
-     * Injects into the readNbt method, the modern equivalent for loading data.
-     * This directly provides the NbtCompound to read from.
-     */
-    @Inject(method = "readNbt", at = @At("HEAD"))
-    private void readOwnerFromNbt(NbtCompound nbt, CallbackInfo ci) {
-        if (nbt.containsUuid("CustomOwnerUUID")) {
-            var uuid = nbt.getUuid("CustomOwnerUUID");
-            
-            // The owner can only be resolved if the entity is in a server world.
-            if (this.asEntity().getWorld() instanceof ServerWorld serverWorld) {
-                var owner = serverWorld.getServer().getPlayerManager().getPlayer(uuid);
-                if (owner != null) {
-                    this.asEntity().setOwner(owner);
+    @Inject(method = "readCustomData", at = @At("TAIL"))
+    private void readOwner(ReadView view, CallbackInfo ci) {
+        NbtCompound nbt = ((NbtReadView)view).getNbt();
+        if (nbt.contains("Owner")) {
+            var uuid = nbt.getCompound("Owner").getUuid("Owner");
+            if (this.getWorld() instanceof ServerWorld serverWorld) {
+                ServerPlayerEntity player = serverWorld.getServer().getPlayerManager().getPlayer(uuid);
+                if (player != null) {
+                    ((PersistentProjectileEntity)(Object)this).setOwner(player);
                 }
             }
         }
