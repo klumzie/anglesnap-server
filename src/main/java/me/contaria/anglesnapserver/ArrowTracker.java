@@ -18,14 +18,12 @@ public class ArrowTracker {
     private static final Map<UUID, List<NbtCompound>> playerArrowData = new HashMap<>();
 
     public void register() {
-        // Save arrows on disconnect
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayerEntity player = handler.player;
             UUID uuid = player.getUuid();
             ServerWorld world = player.getWorld();
 
             List<NbtCompound> arrowsToSave = new ArrayList<>();
-
             List<PersistentProjectileEntity> projectiles = world.getEntitiesByClass(
                 PersistentProjectileEntity.class,
                 player.getBoundingBox().expand(128),
@@ -44,7 +42,6 @@ public class ArrowTracker {
             }
         });
 
-        // Restore arrows on join
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity player = handler.player;
             UUID uuid = player.getUuid();
@@ -56,7 +53,8 @@ public class ArrowTracker {
                     Optional<String> idOpt = nbt.getString("id");
                     if (idOpt.isEmpty()) continue;
 
-                    Identifier id = Identifier.tryParse(idOpt.get()).orElse(null);
+                    String idString = idOpt.get();
+                    Identifier id = Identifier.tryParse(idString);
                     if (id == null) continue;
 
                     EntityType<?> type = Registries.ENTITY_TYPE.get(id);
@@ -65,7 +63,6 @@ public class ArrowTracker {
                     Entity entity = type.create(world, SpawnReason.EVENT);
                     if (entity instanceof PersistentProjectileEntity arrow) {
                         ((EntityNbtAccess) arrow).anglesnap$fromNbt(nbt);
-                        arrow.setOwner(player);
                         world.spawnEntity(arrow);
                     }
                 }

@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.5.6'
+    id 'fabric-loom' version '1.6-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -12,12 +12,16 @@ repositories {
 }
 
 dependencies {
-    minecraft 'com.mojang:minecraft:1.21.6'
-    mappings 'net.fabricmc:yarn:1.21.6+build.1:v2'
-    modImplementation 'net.fabricmc:fabric-loader:0.16.14'
-    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.128.0+1.21.6'
+    minecraft "com.mojang:minecraft:1.21.6"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:0.16.14"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.128.0+1.21"
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/anglesnapserver.accesswidener")
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }

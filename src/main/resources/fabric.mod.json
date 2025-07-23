@@ -11,7 +11,8 @@
     "main": ["me.contaria.anglesnapserver.AngleSnapServer"]
   },
   "mixins": [
-    "me.contaria.anglesnapserver.mixin.EntityMixin"
+    "me.contaria.anglesnapserver.mixin.EntityMixin",
+    "me.contaria.anglesnapserver.mixin.PersistentProjectileEntityMixin"
   ],
   "depends": {
     "fabricloader": ">=0.16.14",
