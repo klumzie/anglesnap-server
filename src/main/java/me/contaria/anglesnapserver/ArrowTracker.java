@@ -9,7 +9,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
 import java.util.*;
-import java.util.function.Function;
 
 public class ArrowTracker {
 
@@ -30,8 +29,7 @@ public class ArrowTracker {
 
             for (PersistentProjectileEntity projectile : projectiles) {
                 NbtCompound nbt = new NbtCompound();
-                // Since saveNbt is unavailable, we use writeNbt, a common alternative.
-                projectile.writeNbt(nbt);
+                projectile.saveNbt(nbt);
                 arrowsToSave.add(nbt);
                 projectile.discard();
             }
@@ -50,15 +48,13 @@ public class ArrowTracker {
 
             if (arrowsToRestore != null) {
                 for (NbtCompound nbt : arrowsToRestore) {
-                    // ✅ Using the correct replacement method you provided.
-                    Entity restoredEntity = EntityType.loadEntityWithPassengers(nbt, world, Function.identity());
-
-                    if (restoredEntity != null) {
-                        if (restoredEntity instanceof PersistentProjectileEntity) {
-                            ((PersistentProjectileEntity) restoredEntity).setOwner(player);
+                    Optional<Entity> optionalEntity = EntityType.load(world, nbt);
+                    optionalEntity.ifPresent(entity -> {
+                        if (entity instanceof PersistentProjectileEntity) {
+                            ((PersistentProjectileEntity) entity).setOwner(player);
                         }
-                        world.spawnEntity(restoredEntity);
-                    }
+                        world.spawnEntity(entity);
+                    });
                 }
             }
         });
